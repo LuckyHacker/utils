@@ -1,5 +1,6 @@
 import difflib
 import os
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
@@ -19,19 +20,24 @@ else:
 
 
 def save_similar_filepaths(path1, path2):
-    path1 = path1.split("/")[-1]
-    path2 = path2.split("/")[-1]
     with open("similar_files.txt", "a") as f:
         f.write("{}\n{}\n\n".format(path1, path2))
 
+    return path1, path2
 
-def compare(dataset1, dataset2, path1, path2):
-    match = difflib.SequenceMatcher(None, dataset1, dataset2)
 
-    match_percent = match.ratio() * 100
+def compare(dataset1, dataset2, path1, path2, saved_pairs):
+    path1 = path1.split("/")[-1]
+    path2 = path2.split("/")[-1]
+    pair = (path1, path2)
+    if pair not in saved_pairs and (pair[1], pair[0]) not in saved_pairs:
+        match = difflib.SequenceMatcher(None, dataset1, dataset2)
 
-    if match_percent > alarm_match_percent:
-        save_similar_filepaths(path1, path2)
+        match_percent = match.ratio() * 100
+        match_percents.append(match_percent)
+
+        if match_percent > alarm_match_percent:
+            return save_similar_filepaths(path1, path2)
 
 
 def get_file_paths():
@@ -43,9 +49,16 @@ def clear_similar_file():
         f.write("")
 
 
+def plot_percents():
+    plt.plot(match_percents)
+    plt.show()
+
+
 if __name__ == "__main__":
     clear_similar_file()
     filepaths = get_file_paths()
+    saved_pairs = []
+    match_percents = []
 
     for path1 in tqdm(filepaths):
         for path2 in filepaths:
@@ -56,4 +69,8 @@ if __name__ == "__main__":
                 with open(path2, "rb") as f2:
                     dataset2 = f2.read()
 
-                compare(dataset1, dataset2, path1, path2)
+                pair = compare(dataset1, dataset2, path1, path2, saved_pairs)
+                if pair:
+                    saved_pairs.append(pair)
+
+    plot_percents()
